@@ -1,0 +1,219 @@
+<header class="top"><div class="wrap">
+  <h1 id="viewTitle">Erfassen</h1>
+  <small id="kopfInfo"></small>
+</div></header>
+
+<main class="wrap">
+  <div class="hinweis" id="banner" hidden><span id="bannerText"></span><button class="btn klein" id="bannerBtn" type="button" hidden>Öffnen</button></div>
+
+  <!-- ERFASSEN -->
+  <form class="view" id="v-erfassen" novalidate autocomplete="off">
+    <fieldset>
+      <legend>Feststellung</legend>
+      <div class="row">
+        <label class="f"><span>Datum</span><input type="date" id="datum" name="datum"></label>
+        <label class="f"><span>Uhrzeit</span><input type="time" id="zeit" name="zeit"></label>
+      </div>
+      <div class="row r13">
+        <label class="f"><span>Linie</span><input type="text" id="linie" name="linie" list="linienListe" autocapitalize="characters"></label>
+        <label class="f"><span>Fahrtrichtung</span><input type="text" id="richtung" name="richtung"></label>
+      </div>
+      <datalist id="linienListe"></datalist>
+      <div class="row r31">
+        <label class="f"><span>Ort / Haltestelle</span><input type="text" id="ort" name="ort"></label>
+        <label class="f"><span>Fahrzeug-Nr.</span><input type="text" id="fahrzeug" name="fahrzeug" inputmode="numeric"></label>
+      </div>
+      <label class="f"><span>Beanstandung <em>*</em></span><select id="grund" name="grund"></select></label>
+      <label class="f"><span>Erläuterung zur Beanstandung</span><input type="text" id="grundText" name="grundText"></label>
+      <label class="f"><span>Vorgezeigter Fahrausweis (Art, Nummer)</span><input type="text" id="fahrausweis" name="fahrausweis"></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Fahrgast</legend>
+      <div class="row r13">
+        <label class="f"><span>Anrede</span><select id="anrede" name="anrede"><option value="">–</option><option>Herr</option><option>Frau</option><option>Divers</option></select></label>
+        <label class="f"><span>Vorname <em>*</em></span><input type="text" id="vorname" name="vorname" autocapitalize="words"></label>
+      </div>
+      <label class="f"><span>Nachname <em>*</em></span><input type="text" id="nachname" name="nachname" autocapitalize="words"></label>
+      <div class="row">
+        <label class="f"><span>Geburtsdatum</span><input type="date" id="gebdatum" name="gebdatum"></label>
+        <label class="f"><span>Geburtsort</span><input type="text" id="gebort" name="gebort" autocapitalize="words"></label>
+      </div>
+      <label class="f"><span>Straße, Hausnummer</span><input type="text" id="strasse" name="strasse" autocapitalize="words"></label>
+      <div class="row r13">
+        <label class="f"><span>PLZ</span><input type="text" id="plz" name="plz" inputmode="numeric" maxlength="10"></label>
+        <label class="f"><span>Wohnort</span><input type="text" id="wohnort" name="wohnort" autocapitalize="words"></label>
+      </div>
+      <label class="f"><span>Land</span><input type="text" id="land" name="land"></label>
+      <div class="row">
+        <label class="f"><span>Ausweis</span><select id="ausweisart" name="ausweisart">
+          <option value="">–</option><option>Personalausweis</option><option>Reisepass</option><option>Führerschein</option><option>Aufenthaltstitel</option><option>Schülerausweis</option><option>Sonstiger Ausweis</option><option>Kein Ausweis, mündliche Angaben</option>
+        </select></label>
+        <label class="f"><span>Ausweis-Nr.</span><input type="text" id="ausweisnr" name="ausweisnr" autocapitalize="characters"></label>
+      </div>
+      <div id="vertreterBlock" hidden>
+        <p class="note warn">Der Fahrgast ist minderjährig. Bitte gesetzlichen Vertreter erfassen.</p>
+        <label class="f"><span>Gesetzlicher Vertreter (Name, Anschrift)</span><textarea id="vertreter" name="vertreter"></textarea></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Betrag und Zahlung</legend>
+      <label class="f"><span>Erhöhtes Beförderungsentgelt (EUR)</span><input type="text" id="betrag" name="betrag" inputmode="decimal"></label>
+      <div class="seg" role="radiogroup" aria-label="Zahlung">
+        <label><input type="radio" name="zahlart" id="za-offen" value="offen" checked>Nicht bezahlt</label>
+        <label><input type="radio" name="zahlart" id="za-bar" value="bar">Bar</label>
+        <label><input type="radio" name="zahlart" id="za-karte" value="karte">Karte</label>
+      </div>
+      <label class="f" id="gezahltBlock" hidden><span>Davon sofort gezahlt (EUR)</span><input type="text" id="gezahlt" name="gezahlt" inputmode="decimal"></label>
+      <label class="f" id="fristBlock"><span>Zahlbar bis</span><input type="date" id="frist" name="frist"></label>
+      <div class="summe"><span id="summeLabel">Noch zu zahlen</span><b id="summeWert">0,00 €</b></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Weiterfahrt und Bemerkung</legend>
+      <label class="check"><input type="checkbox" id="weiterfahrt" name="weiterfahrt"><span>Beleg gilt als Fahrausweis für die Weiterfahrt</span></label>
+      <label class="f" id="weiterBlock" hidden><span>Weiterfahrt bis (Haltestelle)</span><input type="text" id="weiterfahrtBis" name="weiterfahrtBis"></label>
+      <label class="f"><span>Bemerkung (wird gedruckt)</span><textarea id="bemerkung" name="bemerkung"></textarea></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Unterschrift Fahrgast</legend>
+      <canvas class="sig" id="sig" width="600" height="200" aria-label="Unterschriftsfeld"></canvas>
+      <div class="sigbar">
+        <label class="check"><input type="checkbox" id="verweigert" name="verweigert"><span>Unterschrift verweigert</span></label>
+        <button class="btn klein" type="button" id="sigLoeschen">Feld leeren</button>
+      </div>
+    </fieldset>
+
+    <div class="aktionen">
+      <button class="btn pri gross voll" type="submit" id="speichern">Speichern und Beleg anzeigen</button>
+      <button class="btn voll" type="button" id="verwerfen">Eingaben verwerfen</button>
+    </div>
+  </form>
+
+  <!-- VORGÄNGE -->
+  <section class="view" id="v-liste" hidden>
+    <input type="search" id="suche" placeholder="Name, Vorgangs-Nr. oder Linie suchen" aria-label="Vorgänge durchsuchen">
+    <div class="filter" id="filter">
+      <button class="chip" type="button" data-f="alle" aria-pressed="true">Alle</button>
+      <button class="chip" type="button" data-f="offen" aria-pressed="false">Offen</button>
+      <button class="chip" type="button" data-f="bezahlt" aria-pressed="false">Bezahlt</button>
+      <button class="chip" type="button" data-f="storniert" aria-pressed="false">Storniert</button>
+    </div>
+    <p class="note" id="listenInfo"></p>
+    <div class="liste" id="liste"></div>
+    <div class="aktionen">
+      <button class="btn" type="button" id="csv">CSV exportieren</button>
+      <button class="btn" type="button" id="sicherung">Sicherung exportieren</button>
+      <button class="btn voll" type="button" id="importBtn">Sicherung einlesen</button>
+      <input type="file" id="importDatei" accept="application/json,.json" hidden>
+    </div>
+  </section>
+
+  <!-- BELEG -->
+  <section class="view" id="v-beleg" hidden>
+    <div class="belegkopf"><span class="nr" id="belegNr"></span><span class="pill" id="belegStatus"></span></div>
+    <div class="papier"><canvas id="belegCanvas" width="576" height="800" aria-label="Belegvorschau"></canvas></div>
+    <div class="aktionen">
+      <button class="btn pri gross voll" type="button" id="drucken">Drucken</button>
+      <p class="note voll" id="druckHinweis">Im Teilen-Menü »mPrint« wählen. Der Drucker muss eingeschaltet und gekoppelt sein.</p>
+      <button class="btn" type="button" id="alsAnderes">Als PDF teilen</button>
+      <button class="btn" type="button" id="korrigieren">Korrigieren</button>
+      <button class="btn" type="button" id="bezahlt">Als bezahlt markieren</button>
+      <button class="btn krit" type="button" id="storno">Stornieren</button>
+      <button class="btn voll" type="button" id="neu">Neuer Vorgang</button>
+    </div>
+  </section>
+
+  <!-- EINSTELLUNGEN -->
+  <section class="view" id="v-einstellungen" hidden>
+    <fieldset>
+      <legend>Prüfer</legend>
+      <div class="row r31">
+        <label class="f"><span>Name auf dem Beleg</span><input type="text" id="c-prueferName" data-cfg="prueferName"></label>
+        <label class="f"><span>Dienst-Nr.</span><input type="text" id="c-prueferNr" data-cfg="prueferNr"></label>
+      </div>
+      <p class="note">Die Dienst-Nr. ist Teil der Vorgangsnummer. Sie muss je Gerät eindeutig sein.</p>
+    </fieldset>
+    <fieldset>
+      <legend>Unternehmen (Belegkopf)</legend>
+      <label class="f"><span>Name</span><input type="text" id="c-firma" data-cfg="firma"></label>
+      <label class="f"><span>Straße, Hausnummer</span><input type="text" id="c-strasse" data-cfg="strasse"></label>
+      <label class="f"><span>PLZ und Ort</span><input type="text" id="c-plzOrt" data-cfg="plzOrt"></label>
+      <div class="row">
+        <label class="f"><span>Telefon</span><input type="tel" id="c-telefon" data-cfg="telefon"></label>
+        <label class="f"><span>E-Mail</span><input type="email" id="c-email" data-cfg="email"></label>
+      </div>
+      <label class="f"><span>Internet</span><input type="text" id="c-web" data-cfg="web"></label>
+      <div class="logozeile">
+        <img id="logoBild" alt="Logo" hidden>
+        <button class="btn klein" type="button" id="logoBtn">Logo wählen</button>
+        <button class="btn klein krit" type="button" id="logoWeg" hidden>Logo entfernen</button>
+        <input type="file" id="logoDatei" accept="image/*" hidden>
+      </div>
+      <p class="note">Am besten ein schwarz-weißes Logo im Querformat.</p>
+    </fieldset>
+    <fieldset>
+      <legend>Bankverbindung (Überweisung, GiroCode)</legend>
+      <label class="f"><span>Zahlungsempfänger</span><input type="text" id="c-empfaenger" data-cfg="empfaenger"></label>
+      <label class="f"><span>IBAN</span><input type="text" id="c-iban" data-cfg="iban" autocapitalize="characters"></label>
+      <p class="note warn" id="ibanHinweis" hidden>Die IBAN ist ungültig. Ohne gültige IBAN wird kein GiroCode gedruckt.</p>
+      <div class="row">
+        <label class="f"><span>BIC</span><input type="text" id="c-bic" data-cfg="bic" autocapitalize="characters"></label>
+        <label class="f"><span>Bank</span><input type="text" id="c-bank" data-cfg="bank"></label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Beträge und Fristen</legend>
+      <div class="row">
+        <label class="f"><span>EBE-Betrag (EUR)</span><input type="text" id="c-betrag" data-cfg="betrag" inputmode="decimal"></label>
+        <label class="f"><span>Ermäßigter Betrag (EUR)</span><input type="text" id="c-ermaessigt" data-cfg="ermaessigt" inputmode="decimal"></label>
+      </div>
+      <div class="row">
+        <label class="f"><span>Zahlungsfrist (Tage)</span><input type="number" id="c-fristTage" data-cfg="fristTage" min="1" max="90"></label>
+        <label class="f"><span>Präfix Vorgangs-Nr.</span><input type="text" id="c-praefix" data-cfg="praefix" autocapitalize="characters"></label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Auswahllisten</legend>
+      <label class="f"><span>Linien (durch Komma getrennt)</span><input type="text" id="c-linien" data-cfg="linien"></label>
+      <label class="f"><span>Beanstandungen (eine je Zeile)</span><textarea id="c-gruende" data-cfg="gruende" rows="7"></textarea></label>
+    </fieldset>
+    <fieldset>
+      <legend>Texte auf dem Beleg</legend>
+      <label class="f"><span>Hinweise und Rechtsgrundlage</span><textarea id="c-hinweis" data-cfg="hinweis" rows="10"></textarea></label>
+      <p class="note">{ermaessigt} wird durch den ermäßigten Betrag ersetzt.</p>
+      <label class="f"><span>Fußzeile</span><input type="text" id="c-fuss" data-cfg="fuss"></label>
+    </fieldset>
+    <fieldset>
+      <legend>Druck</legend>
+      <div class="row">
+        <label class="f"><span>Format für mPrint</span><select id="c-format" data-cfg="format"><option value="png">Bild (PNG)</option><option value="pdf">PDF</option></select></label>
+        <label class="f"><span>Papierbreite</span><select id="c-breite" data-cfg="breite"><option value="576">80 mm (576 Punkte)</option><option value="384">58 mm (384 Punkte)</option></select></label>
+      </div>
+      <button class="btn" type="button" id="testbeleg">Musterbeleg anzeigen</button>
+    </fieldset>
+    <fieldset>
+      <legend>Daten auf diesem Gerät</legend>
+      <p class="note" id="speicherInfo"></p>
+      <button class="btn krit" type="button" id="allesLoeschen">Alle Vorgänge löschen</button>
+    </fieldset>
+    <p class="note" id="version"></p>
+  </section>
+</main>
+
+<nav class="tabs" aria-label="Bereiche"><div class="wrap">
+  <button type="button" data-view="erfassen" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Erfassen</button>
+  <button type="button" data-view="liste"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Vorgänge</button>
+  <button type="button" data-view="einstellungen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>Einstellungen</button>
+</div></nav>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<dialog id="frage">
+  <p id="frageText"></p>
+  <div class="aktionen">
+    <button class="btn" type="button" id="frageNein">Abbrechen</button>
+    <button class="btn pri" type="button" id="frageJa">OK</button>
+  </div>
+</dialog>

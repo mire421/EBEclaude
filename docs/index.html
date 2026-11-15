@@ -396,6 +396,8 @@ dialog .aktionen { margin-top: 4px; }
         <label class="f"><span>Format für mPrint</span><select id="c-format" data-cfg="format"><option value="png">Bild (PNG)</option><option value="pdf">PDF</option></select></label>
         <label class="f"><span>Papierbreite</span><select id="c-breite" data-cfg="breite"><option value="576">80 mm (576 Punkte)</option><option value="384">58 mm (384 Punkte)</option></select></label>
       </div>
+      <label class="f"><span>Beleg aufteilen</span><select id="c-teilung" data-cfg="teilung"><option value="800">Abschnitte bis 10 cm</option><option value="480">Abschnitte bis 6 cm</option><option value="240">Abschnitte bis 3 cm</option><option value="0">Nicht aufteilen (ein Stück)</option></select></label>
+      <p class="note">Bricht der Druck nach wenigen Zentimetern ab, kürzere Abschnitte wählen. Die Abschnitte werden lückenlos nacheinander gedruckt.</p>
       <button class="btn" type="button" id="testbeleg">Musterbeleg anzeigen</button>
     </fieldset>
     <fieldset>
@@ -2726,7 +2728,7 @@ var qrcode = function() {
 (() => {
 'use strict';
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const VORSCHAU = !!window.EBE_VORSCHAU;
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -2834,7 +2836,7 @@ const STANDARD = {
     'Datenschutz: Ihre Angaben werden zur Bearbeitung dieses Vorgangs verarbeitet (Art. 6 Abs. 1 lit. b und f DSGVO). Auskunft erteilt unsere Verwaltung.',
   ].join('\n'),
   fuss: '',
-  format: 'png', breite: '576',
+  format: 'pdf', breite: '576', teilung: '800',
 };
 const MUSTER_CFG = {
   prueferName: 'A. Beispiel', prueferNr: '0417', firma: 'Muster Verkehrsbetriebe GmbH', strasse: 'Am Betriebshof 1', plzOrt: '12345 Musterstadt',
@@ -3194,33 +3196,52 @@ async function belegZeichnen(v, c, canvas) {
 
 /* ---------- PNG / PDF ---------- */
 const alsBlob = (canvas, typ, q) => new Promise(res => canvas.toBlob(res, typ, q));
-async function alsPdf(canvas) {
-  const jpg = new Uint8Array(await (await alsBlob(canvas, 'image/jpeg', 0.95)).arrayBuffer());
-  const bMm = canvas.width >= 500 ? 72 : 48, b = bMm / 25.4 * 72, h = b * canvas.height / canvas.width;
+/* Zerlegt den Beleg an weißen Zeilen in Abschnitte von höchstens maxH Punkten Höhe. */
+function abschnitte(canvas, maxH) {
+  if (!maxH || canvas.height <= maxH) return [canvas];
+  const W = canvas.width, H = canvas.height, d = canvas.getContext('2d').getImageData(0, 0, W, H).data;
+  const weiss = y => { for (let x = 0, i = y * W * 4; x < W; x++, i += 4) if (d[i] < 200) return false; return true; };
+  const teile = []; let y0 = 0;
+  while (y0 < H) {
+    let y1 = Math.min(H, y0 + maxH);
+    if (y1 < H) { let y = y1; while (y > y0 + maxH / 2 && !weiss(y)) y--; if (y > y0 + maxH / 2) y1 = y; }
+    const c = document.createElement('canvas'); c.width = W; c.height = y1 - y0;
+    c.getContext('2d').drawImage(canvas, 0, y0, W, y1 - y0, 0, 0, W, y1 - y0);
+    teile.push(c); y0 = y1;
+  }
+  return teile;
+}
+async function alsPdf(seiten) {
+  const bMm = seiten[0].width >= 500 ? 72 : 48, b = bMm / 25.4 * 72;
   const enc = new TextEncoder(), teile = [], pos = [];
   let laenge = 0;
   const raus = d => { const u = typeof d === 'string' ? enc.encode(d) : d; teile.push(u); laenge += u.length; };
   const obj = (n, inhalt) => { pos[n] = laenge; raus(`${n} 0 obj\n`); inhalt(); raus('\nendobj\n'); };
   raus('%PDF-1.4\n');
   obj(1, () => raus('<< /Type /Catalog /Pages 2 0 R >>'));
-  obj(2, () => raus('<< /Type /Pages /Kids [3 0 R] /Count 1 >>'));
-  obj(3, () => raus(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${b.toFixed(2)} ${h.toFixed(2)}] /Resources << /XObject << /B 4 0 R >> >> /Contents 5 0 R >>`));
-  obj(4, () => {
-    raus(`<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpg.length} >>\nstream\n`);
-    raus(jpg); raus('\nendstream');
-  });
-  const inhalt = `q ${b.toFixed(2)} 0 0 ${h.toFixed(2)} 0 0 cm /B Do Q`;
-  obj(5, () => raus(`<< /Length ${inhalt.length} >>\nstream\n${inhalt}\nendstream`));
-  const xref = laenge;
-  raus('xref\n0 6\n0000000000 65535 f \n' + [1, 2, 3, 4, 5].map(n => String(pos[n]).padStart(10, '0') + ' 00000 n \n').join(''));
-  raus(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  obj(2, () => raus(`<< /Type /Pages /Kids [${seiten.map((_, i) => `${3 + i * 3} 0 R`).join(' ')}] /Count ${seiten.length} >>`));
+  for (let i = 0; i < seiten.length; i++) {
+    const c = seiten[i], n = 3 + i * 3, h = b * c.height / c.width;
+    const jpg = new Uint8Array(await (await alsBlob(c, 'image/jpeg', 0.95)).arrayBuffer());
+    obj(n, () => raus(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${b.toFixed(2)} ${h.toFixed(2)}] /Resources << /XObject << /B ${n + 1} 0 R >> >> /Contents ${n + 2} 0 R >>`));
+    obj(n + 1, () => {
+      raus(`<< /Type /XObject /Subtype /Image /Width ${c.width} /Height ${c.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpg.length} >>\nstream\n`);
+      raus(jpg); raus('\nendstream');
+    });
+    const inhalt = `q ${b.toFixed(2)} 0 0 ${h.toFixed(2)} 0 0 cm /B Do Q`;
+    obj(n + 2, () => raus(`<< /Length ${inhalt.length} >>\nstream\n${inhalt}\nendstream`));
+  }
+  const anz = 3 + seiten.length * 3, xref = laenge;
+  raus(`xref\n0 ${anz}\n0000000000 65535 f \n` + pos.slice(1).map(o => String(o).padStart(10, '0') + ' 00000 n \n').join(''));
+  raus(`trailer\n<< /Size ${anz} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
   return new Blob(teile, { type: 'application/pdf' });
 }
 
 /* ---------- Teilen (Übergabe an mPrint) ---------- */
 async function teilen(datei) {
-  if (navigator.canShare && navigator.canShare({ files: [datei] })) {
-    try { await navigator.share({ files: [datei] }); return true; }
+  const liste = [].concat(datei); datei = liste[0];
+  if (navigator.canShare && navigator.canShare({ files: liste })) {
+    try { await navigator.share({ files: liste }); return true; }
     catch (e) { if (e.name === 'AbortError') return false; }
   }
   if (VORSCHAU) { toast('In dieser Vorschau ist das Teilen-Menü gesperrt. Drucken geht in der installierten App.', 4500); return false; }
@@ -3240,8 +3261,11 @@ async function belegZeigen(v) {
   await belegZeichnen(v, c, canvas);
   dateien = { png: null, pdf: null };
   const name = v.nummer;
-  alsBlob(canvas, 'image/png').then(b => { dateien.png = new File([b], name + '.png', { type: 'image/png' }); });
-  alsPdf(canvas).then(b => { dateien.pdf = new File([b], name + '.pdf', { type: 'application/pdf' }); });
+  const seiten = abschnitte(canvas, +cfg.teilung || 0);
+  Promise.all(seiten.map(c => alsBlob(c, 'image/png'))).then(bs => {
+    dateien.png = bs.map((b, i) => new File([b], name + (bs.length > 1 ? '-' + (i + 1) : '') + '.png', { type: 'image/png' }));
+  });
+  alsPdf(seiten).then(b => { dateien.pdf = new File([b], name + '.pdf', { type: 'application/pdf' }); });
   const st = status(v);
   $('#belegNr').textContent = v.nummer;
   $('#belegStatus').textContent = v.muster ? 'Muster' : STATUS_TEXT[st];

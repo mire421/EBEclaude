@@ -2728,7 +2728,7 @@ var qrcode = function() {
 (() => {
 'use strict';
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const VORSCHAU = !!window.EBE_VORSCHAU;
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -2836,7 +2836,7 @@ const STANDARD = {
     'Datenschutz: Ihre Angaben werden zur Bearbeitung dieses Vorgangs verarbeitet (Art. 6 Abs. 1 lit. b und f DSGVO). Auskunft erteilt unsere Verwaltung.',
   ].join('\n'),
   fuss: '',
-  format: 'pdf', breite: '576', teilung: '800',
+  format: 'pdf', breite: '576', teilung: '240',
 };
 const MUSTER_CFG = {
   prueferName: 'A. Beispiel', prueferNr: '0417', firma: 'Muster Verkehrsbetriebe GmbH', strasse: 'Am Betriebshof 1', plzOrt: '12345 Musterstadt',
@@ -3056,7 +3056,7 @@ async function belegZeichnen(v, c, canvas) {
     const lb = S(o.lb || 170), y0 = y;
     text(label, { g: o.g || 20, b: lb - S(8) });
     const y1 = y; y = y0;
-    text(wert, { g: o.g || 20, fett: o.fett !== false, x: M + lb, b: IW - lb });
+    text(wert, { g: o.g || 20, fett: !!o.fett, x: M + lb, b: IW - lb });
     y = Math.max(y, y1) + S(3);
   }
   function geld(label, wert, o = {}) {
@@ -3083,7 +3083,7 @@ async function belegZeichnen(v, c, canvas) {
   function qr(inhalt) {
     qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
     const q = qrcode(0, 'M'); q.addData(inhalt, 'Byte'); q.make();
-    const n = q.getModuleCount(), p = Math.max(3, Math.floor(S(250) / n)), b = n * p, x0 = Math.round((W - b) / 2), y0 = y;
+    const n = q.getModuleCount(), p = Math.max(3, Math.floor(S(190) / n)), b = n * p, x0 = Math.round((W - b) / 2), y0 = y;
     ops.push(ctx => {
       ctx.fillStyle = '#000';
       for (let r = 0; r < n; r++) for (let s = 0; s < n; s++) if (q.isDark(r, s)) ctx.fillRect(x0 + s * p, y0 + r * p, p, p);
@@ -3100,13 +3100,13 @@ async function belegZeichnen(v, c, canvas) {
   text([c.strasse, c.plzOrt].filter(Boolean).join(', '), { g: 19, aus: 'center' });
   text([c.telefon && 'Tel. ' + c.telefon, c.email].filter(Boolean).join(' · '), { g: 19, aus: 'center' });
   text(c.web, { g: 19, aus: 'center' });
-  abstand(12); linie(4); abstand(12);
-  text('ERHÖHTES BEFÖRDERUNGSENTGELT', { g: 31, fett: true, aus: 'center' });
+  abstand(12); linie(2); abstand(12);
+  text('ERHÖHTES BEFÖRDERUNGSENTGELT', { g: 28, fett: true, aus: 'center' });
   abstand(2);
   text(rest === 0 ? 'Quittung' : v.gezahlt > 0 ? 'Zahlungsaufforderung mit Teilquittung' : 'Zahlungsaufforderung', { g: 23, aus: 'center' });
   if (v.storniert) { abstand(8); rahmen(() => text('STORNIERT', { g: 34, fett: true, aus: 'center' })); }
-  abstand(12); linie(4); abstand(10);
-  paar('Vorgangs-Nr.', v.nummer, { g: 22 });
+  abstand(12); linie(2); abstand(10);
+  paar('Vorgangs-Nr.', v.nummer, { g: 22, fett: true });
   paar('Datum', datumDE(v.datum) + (v.zeit ? ', ' + v.zeit + ' Uhr' : ''));
 
   /* Feststellung */
@@ -3114,13 +3114,13 @@ async function belegZeichnen(v, c, canvas) {
   paar('Linie', [v.linie, v.richtung && 'Richtung ' + v.richtung].filter(Boolean).join(', '));
   paar('Ort', v.ort);
   paar('Fahrzeug', v.fahrzeug);
-  paar('Beanstandung', v.grund);
+  paar('Beanstandung', v.grund, { fett: true });
   paar('Erläuterung', v.grundText);
   paar('Vorgezeigt', v.fahrausweis);
 
   /* Fahrgast */
   abschnitt('Fahrgast');
-  paar('Name', [v.anrede, v.vorname, v.nachname].filter(Boolean).join(' '));
+  paar('Name', [v.anrede, v.vorname, v.nachname].filter(Boolean).join(' '), { fett: true });
   paar('Geboren', [datumDE(v.gebdatum), v.gebort && 'in ' + v.gebort].filter(Boolean).join(' '));
   paar('Anschrift', [v.strasse, [v.plz, v.wohnort].filter(Boolean).join(' '), v.land && v.land !== 'Deutschland' ? v.land : ''].filter(Boolean).join('\n'));
   paar('Ausweis', [v.ausweisart, v.ausweisnr].filter(Boolean).join(' '));
@@ -3142,12 +3142,12 @@ async function belegZeichnen(v, c, canvas) {
   /* Zahlung */
   if (rest > 0 && !v.storniert) {
     abschnitt('Zahlung per Überweisung');
-    paar('Zahlbar bis', datumDE(v.frist), { g: 22 });
+    paar('Zahlbar bis', datumDE(v.frist), { g: 22, fett: true });
     paar('Empfänger', c.empfaenger || c.firma);
-    paar('IBAN', ibanSchoen(c.iban));
+    paar('IBAN', ibanSchoen(c.iban), { fett: true });
     paar('BIC', c.bic);
     paar('Bank', c.bank);
-    paar('Verwendungszweck', v.nummer, { g: 22, lb: 220 });
+    paar('Verwendungszweck', v.nummer, { g: 22, lb: 220, fett: true });
     if (ibanOk(c.iban) && (c.empfaenger || c.firma)) {
       abstand(14);
       qr(['BCD', '002', '1', 'SCT', (c.bic || '').replace(/\s/g, ''), (c.empfaenger || c.firma).slice(0, 70), ibanRoh(c.iban),
@@ -3182,7 +3182,7 @@ async function belegZeichnen(v, c, canvas) {
     linie(1); abstand(3); text('Unterschrift Fahrgast', { g: 17 });
   }
   abstand(12);
-  paar('Prüfer', [v.prueferName, v.prueferNr && 'Dienst-Nr. ' + v.prueferNr].filter(Boolean).join(', '), { fett: false, lb: 110 });
+  paar('Prüfer', [v.prueferName, v.prueferNr && 'Dienst-Nr. ' + v.prueferNr].filter(Boolean).join(', '), { lb: 110 });
   if (c.fuss) { abstand(10); text(c.fuss, { g: 18, aus: 'center' }); }
   if (v.muster) { abstand(10); text('MUSTER – KEIN GÜLTIGER BELEG', { g: 20, fett: true, aus: 'center' }); }
   y += S(48);
